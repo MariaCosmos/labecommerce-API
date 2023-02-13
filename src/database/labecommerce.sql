@@ -71,6 +71,35 @@ SELECT * FROM products
 WHERE price < 20 AND price > 5
 ORDER BY price ASC;
 
+CREATE TABLE purchases (
+  id TEXT PRIMARY KEY UNIQUE NOT NULL,
+  total_price REAL NOT NULL,
+  paid INTERGER NOT NULL,
+  delivered_at TEXT,
+  buyer_id TEXT NOT NULL,
+  FOREIGN KEY (buyer_id) REFERENCES users(id)
+);
+
+INSERT INTO purchases (id, total_price, paid, buyer_id)
+VALUES
+("c001", 8.5, 0, "u003"),
+("c002", 6.25, 0, "u003"),
+("c003", 7, 0, "u004"),
+("c004", 48, 0, "u004"),
+("c005", 7, 0, "u005"),
+("c006", 8.5, 0, "u005");
+
+UPDATE purchases
+SET delivered_at = "2023-02-13 18:01"
+WHERE id = "c001";
+
+SELECT * FROM purchases;
+
+SELECT * FROM users
+INNER JOIN purchases
+ON users.id = purchases.buyer_id;
+
+
 
 
 
