@@ -6,8 +6,8 @@ export type TUser = {
 }
 
 export enum CATEGORY {
-  FOOD = "alimentação",
-  CLOTHES_AND_SHOES = "roupas e calsados",
+  FOOD = "alimentos",
+  CLOTHES = "roupas",
   COSMETICS = "cosmeticos"
 }
 
