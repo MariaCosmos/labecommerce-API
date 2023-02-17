@@ -119,6 +119,8 @@ VALUES
 ("c001", "p006", 1),
 ("c001", "p003", 1);
 
+SELECT * FROM purchases_products;
+
 SELECT 
 purchases.id AS purchase_id,
 purchases.total_price,
@@ -137,3 +139,13 @@ ON purchases_products.product_id = products.id
 INNER JOIN purchases
 ON purchases_products.purchase_id = purchases.id;
 
+SELECT 
+ purchases.id AS purchaseId,
+ purchases.total_price,
+ purchases.paid AS isPaid,
+ purchases.buyer_id AS buyerId,
+ users.email
+FROM purchases
+INNER JOIN users
+ON purchases.buyer_id = users.id
+WHERE purchases.id = "c003";

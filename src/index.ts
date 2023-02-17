@@ -23,7 +23,7 @@ app.get("/ping", (req: Request, res: Response) => {
 app.get("/users", async (req: Request, res: Response) => {
   try {
 
-    const result = await db.raw(`SELECT * FROM users;`)
+    const result = await db("users")
 
     res.status(200).send(result)
 
@@ -38,7 +38,7 @@ app.get("/users", async (req: Request, res: Response) => {
 
 app.get("/purchases", async (req: Request, res: Response) => {
   try {
-    const result = await db.raw(`SELECT * FROM purchases;`)
+    const result = await db("purchases")
 
     res.status(200).send(result)
 
@@ -53,7 +53,7 @@ app.get("/purchases", async (req: Request, res: Response) => {
 
 app.get("/products", async (req: Request, res: Response) => {
   try {
-    const result = await db.raw(`SELECT * FROM products;`)
+    const result = await db("products")
 
     res.status(200).send(result)
 
@@ -97,7 +97,7 @@ app.get("/products/:id", async (req: Request, res: Response) => {
 
     const id = req.params.id as string
 
-    const product = await db.raw(`SELECT * FROM products WHERE id = "${id}"`)
+    const product = await db("products").where("id","=",`${id}`)
 
     if(!product){
       res.status(400)
@@ -105,6 +105,30 @@ app.get("/products/:id", async (req: Request, res: Response) => {
     }
 
     res.status(200).send(product)
+
+  } catch (error: any) {
+
+    console.log(error)
+    res.status(400).send(error.message)
+  }
+
+})
+
+// Get Purchase by id
+
+app.get("/purchases/:id", async (req: Request, res: Response) => {
+  try {
+
+    const id = req.params.id as string
+
+    const purchase = await db("purchases").where("id","=",`${id}`)
+
+    if(!purchase){
+      res.status(400)
+      throw new Error("'id' não encontrado")
+    }
+
+    res.status(200).send(purchase)
 
   } catch (error: any) {
 
@@ -128,7 +152,7 @@ app.get("/users/:id/purchases", async (req: Request, res: Response) => {
       throw new Error("usuario não encontrado")
     }
 
-    const result = await db.raw(`SELECT * FROM purchases WHERE buyer_id = "${id}"`)
+    const result = await db("purchases").where("buyer_id","=", `${id}`)
 
     res.status(200).send(result)
 
@@ -163,10 +187,13 @@ app.post("/users", async (req: Request, res: Response) => {
       throw new Error("'password' deve ser uma string")
     }
 
-    await db.raw(`
-    INSERT INTO users (id, email, password)
-    VALUES ("${id}", "${email}", "${password}")
-    `)
+    const newUser = {
+      id: id,
+      email: email,
+      password: password
+    }
+
+    await db("users").insert(newUser)
     
     res.status(201).send({ message: "usuario cadastrado com sucesso!" })
   } catch (error: any) {
@@ -203,10 +230,14 @@ app.post("/products", async (req: Request, res: Response) => {
       throw new Error("'category' deve ser uma string")
     }
 
-    await db.raw(`
-    INSERT INTO users (id, name, price, category)
-    VALUES ("${id}", "${name}", "${price}", "${category}")
-    `)
+    const newProduct = {
+      id: id,
+      name: name,
+      price: price,
+      category: category
+    }
+
+    await db("products").insert(newProduct)
 
     res.status(201).send({ message: "produto cadastrado com sucesso!" })
 
@@ -264,10 +295,14 @@ app.post("/purchases", async (req: Request, res: Response) => {
       throw new Error(`'totalPrice' não corresponde ao valor do produto e quantidade da compra. Valor total: ${valorTotal}`)
     }
 
-    await db.raw(`
-    INSERT INTO users (id, name, price, category)
-    VALUES ("${userId}", "${productId}", "${quantity}", "${totalPrice}")
-    `)
+    const newPurchase = {
+      userId: userId,
+      productId: productId,
+      quantity: quantity,
+      totalPrice: totalPrice
+    }
+
+    await db("purchases").insert(newPurchase)
     
     res.status(201).send({ message: "Compra realizada com sucesso!" })
 
@@ -280,18 +315,18 @@ app.post("/purchases", async (req: Request, res: Response) => {
 
 // Delete User by id
 
-app.delete("/users/:id", (req: Request, res: Response) => {
+app.delete("/users/:id", async(req: Request, res: Response) => {
   try {
     const idToDelete = req.params.id
 
     const userIndex = users.findIndex((user) => user.id === idToDelete)
 
-    if (userIndex >= 0) {
-      users.splice(userIndex, 1)
-    } else {
+    if (userIndex < 0) {
       res.status(400)
       throw new Error("usuario não encontrado")
     }
+
+    await db("users").del().where({id: idToDelete})
 
     res.status(201).send({ message: "usuario deletado com sucesso!" })
 
@@ -304,18 +339,18 @@ app.delete("/users/:id", (req: Request, res: Response) => {
 
 // Delete Product by id
 
-app.delete("/products/:id", (req: Request, res: Response) => {
+app.delete("/products/:id", async(req: Request, res: Response) => {
   try {
     const idToDelete = req.params.id
 
     const productIndex = products.findIndex((product) => product.id === idToDelete)
 
-    if (productIndex >= 0) {
-      products.slice(productIndex, 1)
-    } else {
+    if (productIndex < 0) {
       res.status(400)
       throw new Error("produto não encontrado")
     }
+
+    await db("products").del().where({id: idToDelete})
 
     res.status(201).send({ message: "produto deletado com sucesso!" })
   } catch (error: any) {
@@ -328,7 +363,7 @@ app.delete("/products/:id", (req: Request, res: Response) => {
 
 // Edit User by id
 
-app.put("/users/:id", (req: Request, res: Response) => {
+app.put("/users/:id", async (req: Request, res: Response) => {
   try {
     const idToEdit = req.params.id
 
@@ -355,7 +390,7 @@ app.put("/users/:id", (req: Request, res: Response) => {
       }
     }
 
-    const user = users.find((user) => user.id === idToEdit)
+    const [user] = await db("users").where({id: idToEdit})
 
     if(!user){
       res.status(400)
@@ -363,9 +398,12 @@ app.put("/users/:id", (req: Request, res: Response) => {
     }
 
     if (user) {
-      user.id = newId || user.id
-      user.email = newEmail || user.email
-      user.password = newPassword || user.password
+      const updatdUser = {
+        id: newId || user.id,
+        email: newEmail || user.email,
+        password: newPassword
+      }
+      await db("users").update(updatdUser).where({id: idToEdit})
     }
 
     res.status(200).send({ message: "cadastro atualizado com sucesso!" })
@@ -378,7 +416,7 @@ app.put("/users/:id", (req: Request, res: Response) => {
 
 // Edit Product by id
 
-app.put("/products/:id", (req: Request, res: Response) => {
+app.put("/products/:id", async (req: Request, res: Response) => {
   try {
     const idToEdit = req.params.id
 
@@ -412,7 +450,7 @@ app.put("/products/:id", (req: Request, res: Response) => {
       }
     }
 
-    const product = products.find((product) => product.id === idToEdit)
+    const [product] = await db("products").where({id: idToEdit})
 
     if (!product){
       res.status(400)
@@ -420,10 +458,14 @@ app.put("/products/:id", (req: Request, res: Response) => {
     }
 
     if (product) {
-      product.id = newId || product.id
-      product.name = newName || product.name
-      product.price = newPrice || product.price
-      product.category = newCategory || product.category
+      const updatedProduct = {
+        id : newId || product.id,
+        name : newName || product.name,
+        price : newPrice || product.price,
+        category : newCategory || product.category
+      }
+
+      await db("users").update(updatedProduct).where({id: idToEdit})
     }
 
     res.status(200).send({ message: "produto atualizado com sucesso!" })
